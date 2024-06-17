@@ -36,7 +36,7 @@ export const handler: Handler = async (
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
             "--disable-gpu",
-            "--single-process",
+            // "--single-process",
             "--incognito",
             "--disable-client-side-phishing-detection",
             "--disable-software-rasterizer",

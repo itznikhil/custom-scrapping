@@ -1,3 +1,7 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: bytecube
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: muul
 service: scraper
 
 provider:
@@ -10,7 +14,7 @@ provider:
 
 functions:
   test-scraper:
-    memorySize: 256
+    memorySize: 3008
     timeout: 60
     image:
       uri: 975050061542.dkr.ecr.ap-south-1.amazonaws.com/scraper:latest
