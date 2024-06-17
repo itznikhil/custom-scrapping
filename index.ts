@@ -52,14 +52,16 @@ export const handler: Handler = async (
 
         };
 
-    const browser: Browser = await puppeteer.launch(launchOptions);
-    await delay(1000)
-    const page: Page = await browser.newPage();
-    await delay(1000)
-    await page.goto("https://www.blinkit.com");
-    await delay(1000)
-    console.log(await page.content());
-    await browser.close();
+    // const browser: Browser = await puppeteer.launch(launchOptions);
+    // await delay(1000)
+    // const page: Page = await browser.newPage();
+    // await delay(1000)
+    // await page.goto("https://www.blinkit.com");
+    // await delay(1000)
+    // console.log(await page.content());
+    // await browser.close();
+
+    console.log('count: ', 5)
   } catch (e) {
     console.log("Error in Lambda Handler:", e);
     return e;
