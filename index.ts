@@ -2,10 +2,8 @@ import { Callback, Context, Handler } from "aws-lambda";
 import { Browser, Page, PuppeteerLaunchOptions } from "puppeteer";
 import { PuppeteerExtra } from "puppeteer-extra";
 
-interface ExampleEvent {}
-
-function delay(time: number) {
-  return new Promise(resolve => setTimeout(resolve, time));
+interface ExampleEvent {
+  //type your event here if desired
 }
 
 export const handler: Handler = async (
@@ -25,13 +23,12 @@ export const handler: Handler = async (
     //     address: "pr.oxylabs.io",
     //     port: 7777,
     //     credentials: {
-    //       username: "customer-<username>-cc-US",
-    //       password: "<password>",
+    //       username: "customer-someUsername-cc-US",
+    //       password: "somePassword",
     //     },
     //   })
     // );
 
-    
     const launchOptions: PuppeteerLaunchOptions = context.functionName
       ? {
           headless: true,
@@ -41,6 +38,7 @@ export const handler: Handler = async (
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
             "--disable-gpu",
+            "--single-process",
             "--incognito",
             "--disable-client-side-phishing-detection",
             "--disable-software-rasterizer",
@@ -49,21 +47,27 @@ export const handler: Handler = async (
       : {
           headless: false,
           executablePath: puppeteer.executablePath(),
-
         };
 
-    // const browser: Browser = await puppeteer.launch(launchOptions);
-    // await delay(1000)
-    // const page: Page = await browser.newPage();
-    // await delay(1000)
-    // await page.goto("https://www.blinkit.com");
-    // await delay(1000)
-    // console.log(await page.content());
-    // await browser.close();
-
-    console.log('count: ', 5)
+    const browser: Browser = await puppeteer.launch(launchOptions);
+    const page: Page = await browser.newPage();
+    await page.goto("https://www.example.com");
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    console.log(await page.content());
+    await browser.close();
   } catch (e) {
     console.log("Error in Lambda Handler:", e);
     return e;
   }
 };
+
+// // Test - npx ts-node index.ts
+// (async () => {
+//   try {
+//     const event: ExampleEvent = {};
+//     //@ts-ignore
+//     await handler(event, {}, () => {});
+//   } catch (e) {
+//     console.log("Error in Lambda Handler:", e);
+//   }
+// })();
