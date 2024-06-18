@@ -51,7 +51,7 @@ export const handler: Handler = async (
 
     const browser: Browser = await puppeteer.launch(launchOptions);
     const page: Page = await browser.newPage();
-    await page.goto("https://www.example.com");
+    await page.goto("https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771");
     await new Promise((resolve) => setTimeout(resolve, 5000));
     console.log(await page.content());
     await browser.close();
