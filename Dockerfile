@@ -14,8 +14,8 @@ ENV NPM_CONFIG_CACHE=/tmp/.npm3
 ARG FUNCTION_DIR
 
 # Install build dependencies
-RUN apt-get update && \
-    apt-get install -y \
+RUN apk update && \
+    apk install -y \
     g++ \
     make \
     cmake \
