@@ -1,7 +1,7 @@
 # Define custom function directory
 ARG FUNCTION_DIR="/function"
 
-FROM node:alpine3.20 as build-image
+FROM node:lts
 
 RUN ls -la
 
@@ -14,8 +14,8 @@ ENV NPM_CONFIG_CACHE=/tmp/.npm3
 ARG FUNCTION_DIR
 
 # Install build dependencies
-RUN apk update && \
-    apk install -y \
+RUN apt-get update && \
+    apt-get install -y \
     g++ \
     make \
     cmake \
@@ -37,7 +37,7 @@ RUN npm install
 RUN npx puppeteer browsers install chrome
 
 # Install some extra dependencies
-RUN apk install -y \
+RUN apt-get install -y \
     libnss3 libnss3-dev \
     libnspr4 libnspr4-dev \
     libdbus-1-3 \
