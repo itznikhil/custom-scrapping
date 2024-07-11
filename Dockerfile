@@ -1,13 +1,15 @@
 # Define custom function directory
 ARG FUNCTION_DIR="/function"
 
+# Use a public ECR image for Node.js
 FROM public.ecr.aws/docker/library/node:bookworm as build-image
 
+# List files and system information for debugging
 RUN ls -la
-
 RUN cat /etc/os-release
 RUN uname -a
 
+# Set NPM cache directory
 ENV NPM_CONFIG_CACHE=/tmp/.npm3
 
 # Include global arg in this stage of the build
@@ -22,21 +24,24 @@ RUN apt-get update && \
     unzip \
     libcurl4-openssl-dev
 
-# Copy function code
+# Create function directory and copy code
 RUN mkdir -p ${FUNCTION_DIR}
 COPY . ${FUNCTION_DIR}
 
+# Set working directory
 WORKDIR ${FUNCTION_DIR}
 
+# List files in working directory
 RUN pwd
 RUN ls -la
 
+# Install npm dependencies including TypeScript
 RUN npm install
 
-
+# Install Puppeteer Chrome browser
 RUN npx puppeteer browsers install chrome
 
-# Install some extra dependencies
+# Install additional system dependencies
 RUN apt-get install -y \
     libnss3 libnss3-dev \
     libnspr4 libnspr4-dev \
@@ -78,8 +83,12 @@ RUN apt-get install -y \
     wget \
     xdg-utils
 
+# Install TypeScript, ts-node, tsc globally
+RUN npm install -g typescript ts-node tsc
+
+# List files in working directory again
 RUN pwd
 RUN ls -la
 
-# Set runtime interface client as default command for the container runtime
-ENTRYPOINT ["/usr/local/bin/npx",]
+# Set the entrypoint to run your TypeScript file
+ENTRYPOINT ["ts-node", "index.ts"]
