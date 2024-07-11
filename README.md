@@ -1,8 +1,8 @@
-# Puppeteer Extra Stealth + TypeScript + AWS Lambda
+# Puppeteer Extra Stealth + TypeScript + AWS Batch
 
-### A simple example of using Puppeteer Extra Stealth with TypeScript on AWS Lambda.
+### A simple example of using Puppeteer Extra Stealth with TypeScript on AWS Batch.
 
-Read the guide to set up and deploy this project on AWS Lambda.
+Read the guide to set up and deploy this project on AWS Batch.
 
 I set up this guide + repo because I love web scraping, and I couldn't find a guide that consolidated my favorite tools into one place. The tools used here are my holy grail of web scraping difficult sites at scale. I hope you find this guide helpful!
 

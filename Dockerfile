@@ -33,7 +33,6 @@ RUN ls -la
 
 RUN npm install
 
-RUN npm install aws-lambda-ric
 
 RUN npx puppeteer browsers install chrome
 
@@ -83,4 +82,4 @@ RUN pwd
 RUN ls -la
 
 # Set runtime interface client as default command for the container runtime
-ENTRYPOINT ["/usr/local/bin/npx", "aws-lambda-ric"]
+ENTRYPOINT ["/usr/local/bin/npx"]

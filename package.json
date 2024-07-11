@@ -1,7 +1,7 @@
 {
-  "name": "puppeteer-extra-lambda",
+  "name": "puppeteer-extra-batch",
   "version": "1.0.0",
-  "description": "A simple example of using puppeteer-extra with AWS Lambda",
+  "description": "A simple example of using puppeteer-extra with AWS batch",
   "main": "index.js",
   "scripts": {
     "test": "npx ts-node index.ts"
@@ -9,14 +9,15 @@
   "author": "Nikhil Garg",
   "license": "ISC",
   "dependencies": {
-    "aws-lambda": "^1.0.7",
+    "@aws-sdk/client-s3": "^3.600.0",
+    "fast-csv": "^5.0.1",
     "puppeteer": "^21.9.0",
+    "puppeteer-cluster": "^0.23.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-proxy": "^1.0.2",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
   },
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.137",
     "@types/node": "^20.12.7",
     "ts-node": "^10.9.2"
   }

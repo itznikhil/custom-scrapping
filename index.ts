@@ -1,73 +1,160 @@
-import { Callback, Context, Handler } from "aws-lambda";
 import { Browser, Page, PuppeteerLaunchOptions } from "puppeteer";
 import { PuppeteerExtra } from "puppeteer-extra";
+import { S3Client, GetObjectCommand, PutObjectCommand ,} from '@aws-sdk/client-s3';
+import { Cluster } from "puppeteer-cluster";
 
-interface ExampleEvent {
-  //type your event here if desired
+const s3 = new S3Client({ region: 'ap-south-1' }); 
+
+const bucketName = 'quick-commerce-data-monitoring';
+
+async function getS3Object(key: string) {
+  const command = new GetObjectCommand({ Bucket: bucketName, Key: key });
+  const response = await s3.send(command);
+
+  return response
+}
+async function uploadToS3(key:string, data:any) {
+
+
+  const params = {
+      Bucket: bucketName,
+      Key: key,
+      Body: data,
+  };
+
+  try {
+      const command = new PutObjectCommand(params);
+      await s3.send(command);
+      return "CSV file uploaded successfully to S3.";
+  } catch (err) {
+      console.error("Error uploading CSV to S3:", err);
+  }
 }
 
-export const handler: Handler = async (
-  event: ExampleEvent,
-  context: Context,
-  callback: Callback
+
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+
+export const handler = async (
+ 
 ): Promise<any> => {
   try {
-    console.log("event:", event);
     const puppeteer: PuppeteerExtra = require("puppeteer-extra");
+    const csv = require('@fast-csv/parse');
     const stealthPlugin = require("puppeteer-extra-plugin-stealth");
     puppeteer.use(stealthPlugin());
+    
 
-    // const proxyPlugin = require("puppeteer-extra-plugin-proxy");
-    // puppeteer.use(
-    //   proxyPlugin({
-    //     address: "pr.oxylabs.io",
-    //     port: 7777,
-    //     credentials: {
-    //       username: "customer-someUsername-cc-US",
-    //       password: "somePassword",
-    //     },
-    //   })
-    // );
 
-    const launchOptions: PuppeteerLaunchOptions = context.functionName
-      ? {
-          headless: true,
-          executablePath: puppeteer.executablePath(),
-          args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-gpu",
-            "--single-process",
-            "--incognito",
-            "--disable-client-side-phishing-detection",
-            "--disable-software-rasterizer",
-          ],
-        }
-      : {
-          headless: false,
-          executablePath: puppeteer.executablePath(),
-        };
+    const cluster = await Cluster.launch({
+      concurrency: Cluster.CONCURRENCY_CONTEXT,
+      maxConcurrency: 10,
+      puppeteer
+    });
 
-    const browser: Browser = await puppeteer.launch(launchOptions);
-    const page: Page = await browser.newPage();
-    await page.goto("https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771");
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    console.log(await page.content());
-    await browser.close();
+    for (let index = 0; index < 10; index++) {
+      
+      cluster.queue( async () => {
+
+        try {
+          const launchOptions: PuppeteerLaunchOptions = {
+              headless: false,
+              executablePath: puppeteer.executablePath(),
+              args: [
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--incognito",
+                "--disable-client-side-phishing-detection",
+                "--disable-software-rasterizer",
+                "--start-maximized"
+              ],
+            };
+    
+        const browser: Browser = await puppeteer.launch(launchOptions);
+        
+          const context = browser.defaultBrowserContext();
+
+          await context.overridePermissions('https://blinkit.com', ['geolocation']);
+        
+          
+          const page = await browser.newPage();
+
+          page.setDefaultNavigationTimeout(45000);
+
+          page.setGeolocation({
+            latitude: 19.0759837,
+            longitude:72.8776559
+          })
+        
+          await delay(2000)
+
+          await page.goto("https://blinkit.com");
+
+          const LocationBox = 'button.btn.location-box.mask-button'
+          await page.waitForSelector(LocationBox)
+          await page.click(LocationBox);
+          await delay(2000)
+
+          const prids = ["532966","532967"]
+
+
+          const response = await getS3Object('Blinkit Area.csv')
+
+          const csvFile = response.Body;
+
+
+          let parserFcn = new Promise((resolve, reject) => {
+            const parser = csv
+              .parseStream(csvFile, { headers: true })
+              .on("data", function (data:any) {
+                console.log('Data parsed: ', data);
+              })
+              .on("end", function () {
+                resolve("csv parse process finished");
+              })
+              .on("error", function () {
+                reject("csv parse process failed");
+              });
+          });
+
+
+
+
+
+
+
+
+          for (const prid of prids) {
+            const newPage = await browser.newPage();
+            newPage.setDefaultNavigationTimeout(5000);
+
+            await newPage.goto(`https://blinkit.com/prn/a/prid/${prid}`);
+
+            await delay(5000)
+            await newPage.close();
+          }
+          await browser.close();
+
+        } catch (error) {
+          console.error("Error during product scraping:", error);
+        } 
+      });
+    }
+    
+    await cluster.idle();
+    await cluster.close();
   } catch (e) {
-    console.log("Error in Lambda Handler:", e);
+    console.log("Error in Handler:", e);
     return e;
   }
 };
 
-// // Test - npx ts-node index.ts
-// (async () => {
-//   try {
-//     const event: ExampleEvent = {};
-//     //@ts-ignore
-//     await handler(event, {}, () => {});
-//   } catch (e) {
-//     console.log("Error in Lambda Handler:", e);
-//   }
-// })();
+// Test - npx ts-node index.ts
+(async () => {
+  try {
+    await handler();
+  } catch (e) {
+    console.log("Error in Handler:", e);
+  }
+})();
