@@ -1,7 +1,7 @@
 # Define custom function directory
 ARG FUNCTION_DIR="/function"
 
-FROM node:lts
+FROM public.ecr.aws/docker/library/node:bookworm as build-image
 
 RUN ls -la
 
@@ -82,4 +82,4 @@ RUN pwd
 RUN ls -la
 
 # Set runtime interface client as default command for the container runtime
-ENTRYPOINT ["/usr/local/bin/npx"]
+ENTRYPOINT ["/usr/local/bin/npx",]
