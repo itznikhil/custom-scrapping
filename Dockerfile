@@ -1,7 +1,7 @@
 # Define custom function directory
 ARG FUNCTION_DIR="/function"
 
-FROM node:bookworm as build-image
+FROM node:alpine as build-image
 
 RUN ls -la
 
