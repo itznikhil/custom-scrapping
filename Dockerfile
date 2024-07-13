@@ -12,6 +12,20 @@ RUN uname -a
 # Set NPM cache directory
 ENV NPM_CONFIG_CACHE=/tmp/.npm3
 
+# We don't need the standalone Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
+
+# Install Google Chrome Stable and fonts
+# Note: this installs the necessary libs to make the browser work with Puppeteer.
+RUN apt-get update && apt-get install curl gnupg -y \
+  && curl --location --silent https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+  && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
+  && apt-get update \
+  && apt-get install google-chrome-stable -y --no-install-recommends \
+  && rm -rf /var/lib/apt/lists/*
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
 
@@ -24,8 +38,11 @@ RUN apt-get update && \
     unzip \
     libcurl4-openssl-dev
 
+# Create a non-root user and group with a home directory
+RUN groupadd -r puppeteergrp && useradd -r -g puppeteergrp -G audio,video -d /home/puppeteerusr puppeteerusr
+
 # Create function directory and copy code
-RUN mkdir -p ${FUNCTION_DIR}
+RUN mkdir -p ${FUNCTION_DIR} && chown -R puppeteerusr:puppeteergrp ${FUNCTION_DIR}
 COPY . ${FUNCTION_DIR}
 
 # Set working directory
@@ -37,9 +54,6 @@ RUN ls -la
 
 # Install npm dependencies including TypeScript
 RUN npm install
-
-# Install Puppeteer Chrome browser
-RUN npx puppeteer browsers install chrome
 
 # Install additional system dependencies
 RUN apt-get install -y \
@@ -85,6 +99,15 @@ RUN apt-get install -y \
 
 # Install TypeScript, ts-node, tsc globally
 RUN npm install -g typescript ts-node tsc
+
+# Ensure the home directory exists and set ownership
+RUN mkdir -p /home/puppeteerusr && chown -R puppeteerusr:puppeteergrp /home/puppeteerusr
+
+# Change ownership of the working directory
+RUN chown -R puppeteerusr:puppeteergrp ${FUNCTION_DIR}
+
+# Switch to the non-root user
+USER puppeteerusr
 
 # List files in working directory again
 RUN pwd

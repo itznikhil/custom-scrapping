@@ -1,154 +1,152 @@
-import { Browser, Page, PuppeteerLaunchOptions } from "puppeteer";
-import { PuppeteerExtra } from "puppeteer-extra";
-import { S3Client, GetObjectCommand, PutObjectCommand ,} from '@aws-sdk/client-s3';
 import { Cluster } from "puppeteer-cluster";
+import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { Readable } from "stream";
+import { PuppeteerExtra } from "puppeteer-extra";
+import { Page } from "puppeteer";
 
-const s3 = new S3Client({ region: 'ap-south-1' }); 
-
-const bucketName = 'quick-commerce-data-monitoring';
+const s3 = new S3Client({
+  region: "ap-south-1",
+});
+const bucketName = "quick-commerce-data-monitoring";
 
 async function getS3Object(key: string) {
   const command = new GetObjectCommand({ Bucket: bucketName, Key: key });
   const response = await s3.send(command);
-
-  return response
+  return response.Body;
 }
-async function uploadToS3(key:string, data:any) {
 
+async function readCSVFile(csvFile: Readable) {
+  const csv = require("@fast-csv/parse");
 
+  let rows: any[] = [];
+  await new Promise((resolve, reject) => {
+    csvFile
+      .pipe(csv.parse({ headers: true }))
+      .on("data", (data: any) => {
+        console.log('Data parsed: ', data);
+        rows.push(data);
+      })
+      .on("end", resolve)
+      .on("error", reject);
+  });
+
+  return rows;
+}
+
+async function uploadToS3(key: string, data: any) {
   const params = {
-      Bucket: bucketName,
-      Key: key,
-      Body: data,
+    Bucket: bucketName,
+    Key: key,
+    Body: data,
   };
 
   try {
-      const command = new PutObjectCommand(params);
-      await s3.send(command);
-      return "CSV file uploaded successfully to S3.";
+    const command = new PutObjectCommand(params);
+    await s3.send(command);
+    return "CSV file uploaded successfully to S3.";
   } catch (err) {
-      console.error("Error uploading CSV to S3:", err);
+    console.error("Error uploading CSV to S3:", err);
   }
 }
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-
-export const handler = async (
- 
-): Promise<any> => {
+export const handler = async (): Promise<any> => {
   try {
     const puppeteer: PuppeteerExtra = require("puppeteer-extra");
-    const csv = require('@fast-csv/parse');
     const stealthPlugin = require("puppeteer-extra-plugin-stealth");
-    puppeteer.use(stealthPlugin());
-    
 
+    puppeteer.use(stealthPlugin());
 
     const cluster = await Cluster.launch({
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 10,
-      puppeteer
+      maxConcurrency: 2,
+      puppeteer,
     });
 
-    for (let index = 0; index < 10; index++) {
-      
-      cluster.queue( async () => {
+    const response = await getS3Object("Blinkit Area.csv");
+    const stores = await readCSVFile(response as Readable);
 
+    for (const store of stores) {
+      await cluster.queue(async () => {
+        const browser = await puppeteer.launch({
+          headless: 'new',
+          args: [
+            "--start-maximized",
+            "--disable-client-side-phishing-detection",
+            "--disable-software-rasterizer",
+            "--disable-dev-shm-usage",
+            "--proxy-server=103.162.133.224:49155"
+
+          ],
+        
+        });
         try {
-          const launchOptions: PuppeteerLaunchOptions = {
-              headless: false,
-              executablePath: puppeteer.executablePath(),
-              args: [
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--incognito",
-                "--disable-client-side-phishing-detection",
-                "--disable-software-rasterizer",
-                "--start-maximized"
-              ],
-            };
-    
-        const browser: Browser = await puppeteer.launch(launchOptions);
-        
+          console.log(`Processing store: ${store}`);
+
           const context = browser.defaultBrowserContext();
-
           await context.overridePermissions('https://blinkit.com', ['geolocation']);
-        
-          
-          const page = await browser.newPage();
 
-          page.setDefaultNavigationTimeout(45000);
-
-          page.setGeolocation({
-            latitude: 19.0759837,
-            longitude:72.8776559
-          })
-        
-          await delay(2000)
-
-          await page.goto("https://blinkit.com");
-
-          const LocationBox = 'button.btn.location-box.mask-button'
-          await page.waitForSelector(LocationBox)
-          await page.click(LocationBox);
-          await delay(2000)
-
-          const prids = ["532966","532967"]
-
-
-          const response = await getS3Object('Blinkit Area.csv')
-
-          const csvFile = response.Body;
-
-
-          let parserFcn = new Promise((resolve, reject) => {
-            const parser = csv
-              .parseStream(csvFile, { headers: true })
-              .on("data", function (data:any) {
-                console.log('Data parsed: ', data);
-              })
-              .on("end", function () {
-                resolve("csv parse process finished");
-              })
-              .on("error", function () {
-                reject("csv parse process failed");
-              });
+          const firstPage = await context.newPage();
+          await firstPage.setGeolocation({
+            latitude: parseFloat(store.Latitude),
+            longitude: parseFloat(store.Longitude),
           });
 
+          const user = "nikhil0mqUA";
+          const password = "kkDouV6zVx";
+          await firstPage.authenticate({ username: user, password: password });
 
+          await firstPage.goto("https://blinkit.com", { waitUntil: 'load', timeout: 0 });
 
+          const locationBox = "button.btn.location-box.mask-button";
+          await firstPage.waitForSelector(locationBox);
+          await firstPage.click(locationBox);
+          await firstPage.waitForFunction('document.querySelector(".containers__DesktopContainer-sc-95cgcs-0.hAbKnj") === null');
+          await delay(500);
 
+          const products = ["472059", "432775"];
+          const promises = products.map(async (product) => {
+            const productPage = await context.newPage();
+            await productPage.goto(`https://www.blinkit.com/prn/a/prid/${product}`);
+            await delay(500);
+            await checkBlinkitPrice(productPage);
+            
+          });
 
-
-
-
-          for (const prid of prids) {
-            const newPage = await browser.newPage();
-            newPage.setDefaultNavigationTimeout(5000);
-
-            await newPage.goto(`https://blinkit.com/prn/a/prid/${prid}`);
-
-            await delay(5000)
-            await newPage.close();
-          }
-          await browser.close();
+          await Promise.all(promises);
 
         } catch (error) {
-          console.error("Error during product scraping:", error);
-        } 
+          console.error(`Error during area processing:`, error);
+        } finally {
+          await browser.close();
+        }
       });
     }
-    
+
     await cluster.idle();
     await cluster.close();
+
   } catch (e) {
     console.log("Error in Handler:", e);
     return e;
   }
 };
+
+async function checkBlinkitPrice(page: Page) {
+  try {
+    const product = await page.evaluate(() => {
+      const name = document.querySelector('.ProductVariants__VariantUnitText-sc-1unev4j-6.dhCxof')?.textContent?.trim() ?? '';
+      const unit = document.querySelector('.ProductInfoCard__ProductName-sc-113r60q-10.dsuWXl')?.textContent?.trim() ?? '';
+      return { name, unit };
+    });
+
+    console.log("Product: ", product);
+
+  } catch (error) {
+    console.error("Error: ", error);
+  }
+}
 
 // Test - npx ts-node index.ts
 (async () => {
