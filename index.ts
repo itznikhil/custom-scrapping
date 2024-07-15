@@ -73,20 +73,22 @@ export const handler = async (): Promise<any> => {
 
     for (const store of stores) {
       await cluster.queue(async () => {
-        const browser = await puppeteer.launch({
-          headless: 'new',
-          args: [
-            "--start-maximized",
-            "--disable-client-side-phishing-detection",
-            "--disable-software-rasterizer",
-            "--disable-dev-shm-usage",
-            "--proxy-server=103.162.133.224:49155",    
-
-          ],
-        
-        });
+        let browser
         try {
           console.log(`Processing store: ${store}`);
+
+          browser = await puppeteer.launch({
+            headless: 'new',
+            args: [
+              "--start-maximized",
+              "--disable-client-side-phishing-detection",
+              "--disable-software-rasterizer",
+              "--disable-dev-shm-usage",
+              "--proxy-server=103.162.133.224:49155",    
+  
+            ],
+          
+          });
 
           const context = browser.defaultBrowserContext();
           await context.overridePermissions('https://blinkit.com', ['geolocation']);
@@ -123,7 +125,9 @@ export const handler = async (): Promise<any> => {
         } catch (error) {
           console.error(`Error during area processing:`, error);
         } finally {
-          await browser.close();
+          if(browser){
+            await browser.close();
+          }
         }
       });
     }
