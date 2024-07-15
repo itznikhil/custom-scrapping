@@ -60,15 +60,18 @@ export const handler = async (): Promise<any> => {
 
     const cluster = await Cluster.launch({
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 2,
+      maxConcurrency: 50,
       puppeteer,
       puppeteerOptions: {
         args:['--no-sandbox', '--disable-setuid-sandbox']
       }
     });
 
-    const response = await getS3Object("Blinkit Area.csv");
+    const response = await getS3Object("Blinkit Areas.csv");
     const stores = await readCSVFile(response as Readable);
+
+   
+
 
     for (const store of stores) {
       await cluster.queue(async () => {
@@ -77,7 +80,7 @@ export const handler = async (): Promise<any> => {
           console.log(`Processing store: ${store}`);
 
           browser = await puppeteer.launch({
-            headless: 'new',
+            headless: false,
             args: [
               "--start-maximized",
               "--disable-client-side-phishing-detection",
@@ -106,15 +109,19 @@ export const handler = async (): Promise<any> => {
           await firstPage.goto("https://blinkit.com", { waitUntil: 'load', timeout: 0 });
 
           const locationBox = "button.btn.location-box.mask-button";
-          await firstPage.waitForSelector(locationBox);
-          await firstPage.click(locationBox);
-          await firstPage.waitForFunction('document.querySelector(".containers__DesktopContainer-sc-95cgcs-0.hAbKnj") === null');
+          await firstPage.waitForSelector(locationBox, {timeout: 0,});
+          await firstPage.click(locationBox, );
+          await firstPage.waitForFunction('document.querySelector(".containers__DesktopContainer-sc-95cgcs-0.hAbKnj") === null', {timeout:0});
           await delay(500);
 
-          const products = ["472059", "432775"];
-          const promises = products.map(async (product) => {
+          const response = await getS3Object("Combined Data Mapping Anveshan.csv");
+          const skus = await readCSVFile(response as Readable);
+
+          const prids=skus.filter(sku => !!sku['Blinkit PRID']).map(sku => sku['Blinkit PRID']);
+
+          const promises = prids.map(async (prid) => {
             const productPage = await context.newPage();
-            await productPage.goto(`https://www.blinkit.com/prn/a/prid/${product}`);
+            await productPage.goto(`https://www.blinkit.com/prn/a/prid/${prid}`, {waitUntil:'load', timeout:0});
             await delay(500);
             await checkBlinkitPrice(productPage);
             
