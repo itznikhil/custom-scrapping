@@ -62,10 +62,7 @@ export const handler = async (): Promise<any> => {
       concurrency: Cluster.CONCURRENCY_CONTEXT,
       maxConcurrency: 2,
       puppeteer,
-      puppeteerOptions:{
-        args:["--no-sandbox",
-        "--disable-setuid-sandbox",]
-      }
+
     });
 
     const response = await getS3Object("Blinkit Area.csv");
@@ -85,6 +82,8 @@ export const handler = async (): Promise<any> => {
               "--disable-software-rasterizer",
               "--disable-dev-shm-usage",
               "--proxy-server=103.162.133.224:49155",    
+              "--no-sandbox",
+        "--disable-setuid-sandbox"
   
             ],
           
