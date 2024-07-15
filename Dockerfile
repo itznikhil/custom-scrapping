@@ -38,11 +38,8 @@ RUN apt-get update && \
     unzip \
     libcurl4-openssl-dev
 
-# Create a non-root user and group with a home directory
-RUN groupadd -r puppeteergrp && useradd -r -g puppeteergrp -G audio,video -d /home/puppeteerusr puppeteerusr
-
 # Create function directory and copy code
-RUN mkdir -p ${FUNCTION_DIR} && chown -R puppeteerusr:puppeteergrp ${FUNCTION_DIR}
+RUN mkdir -p ${FUNCTION_DIR}
 COPY . ${FUNCTION_DIR}
 
 # Set working directory
@@ -99,15 +96,6 @@ RUN apt-get install -y \
 
 # Install TypeScript, ts-node, tsc globally
 RUN npm install -g typescript ts-node tsc
-
-# Ensure the home directory exists and set ownership
-RUN mkdir -p /home/puppeteerusr && chown -R puppeteerusr:puppeteergrp /home/puppeteerusr
-
-# Change ownership of the working directory
-RUN chown -R puppeteerusr:puppeteergrp ${FUNCTION_DIR}
-
-# Switch to the non-root user
-USER puppeteerusr
 
 # List files in working directory again
 RUN pwd
