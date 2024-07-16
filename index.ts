@@ -80,7 +80,7 @@ export const handler = async (): Promise<any> => {
           console.log(`Processing store: ${store}`);
 
           browser = await puppeteer.launch({
-            headless: false,
+            headless: 'new',
             args: [
               "--start-maximized",
               "--disable-client-side-phishing-detection",
