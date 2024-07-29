@@ -23,7 +23,6 @@ async function readCSVFile(csvFile: Readable) {
     csvFile
       .pipe(csv.parse({ headers: true }))
       .on("data", (data: any) => {
-        console.log('Data parsed: ', data);
         rows.push(data);
       })
       .on("end", resolve)
@@ -77,7 +76,6 @@ export const handler = async (): Promise<any> => {
       await cluster.queue(async () => {
         let browser
         try {
-          console.log(`Processing store: ${store}`);
 
           browser = await puppeteer.launch({
             headless: 'new',
