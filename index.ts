@@ -15,6 +15,7 @@ async function getS3Object(key: string) {
   return response.Body;
 }
 
+
 async function readCSVFile(csvFile: Readable) {
   const csv = require("@fast-csv/parse");
 
@@ -59,7 +60,7 @@ export const handler = async (): Promise<any> => {
 
     const cluster = await Cluster.launch({
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 50,
+      maxConcurrency: 10,
       puppeteer,
       puppeteerOptions: {
         args:['--no-sandbox', '--disable-setuid-sandbox']
@@ -74,11 +75,10 @@ export const handler = async (): Promise<any> => {
 
     for (const store of stores) {
       await cluster.queue(async () => {
-        let browser
         try {
 
-          browser = await puppeteer.launch({
-            headless: 'new',
+          const browser = await puppeteer.launch({
+            headless: false,
             args: [
               "--start-maximized",
               "--disable-client-side-phishing-detection",
@@ -94,45 +94,44 @@ export const handler = async (): Promise<any> => {
           const context = browser.defaultBrowserContext();
           await context.overridePermissions('https://blinkit.com', ['geolocation']);
 
-          const firstPage = await context.newPage();
-          await firstPage.setGeolocation({
+          const locationPage = await context.newPage();
+          await locationPage.setGeolocation({
             latitude: parseFloat(store.Latitude),
             longitude: parseFloat(store.Longitude),
           });
 
           const user = "nikhil0mqUA";
           const password = "kkDouV6zVx";
-          await firstPage.authenticate({ username: user, password: password });
+          await locationPage.authenticate({ username: user, password: password });
 
-          await firstPage.goto("https://blinkit.com", { waitUntil: 'load', timeout: 0 });
+          await locationPage.goto("https://blinkit.com", { waitUntil: 'load', timeout: 0 });
 
           const locationBox = "button.btn.location-box.mask-button";
-          await firstPage.waitForSelector(locationBox, {timeout: 0,});
-          await firstPage.click(locationBox, );
-          await firstPage.waitForFunction('document.querySelector(".containers__DesktopContainer-sc-95cgcs-0.hAbKnj") === null', {timeout:0});
+          await locationPage.waitForSelector(locationBox, {timeout: 0,});
+          await locationPage.click(locationBox, );
+          await locationPage.waitForFunction('document.querySelector(".containers__DesktopContainer-sc-95cgcs-0.hAbKnj") === null', {timeout:0});
           await delay(500);
 
           const response = await getS3Object("Combined Data Mapping Anveshan.csv");
           const skus = await readCSVFile(response as Readable);
 
-          const prids=skus.filter(sku => !!sku['Blinkit PRID']).map(sku => sku['Blinkit PRID']);
+          const key = 'Blinkit PRID'
 
-          const promises = prids.map(async (prid) => {
+          const p_ids=skus.filter(sku => !!sku[key]).map(sku => sku[key]);
+
+          const promises = p_ids.map(async (pid) => {
             const productPage = await context.newPage();
-            await productPage.goto(`https://www.blinkit.com/prn/a/prid/${prid}`, {waitUntil:'load', timeout:0});
-            await delay(500);
-            await checkBlinkitPrice(productPage);
+            await productPage.goto(`https://www.blinkit.com/prn/a/prid/${pid}`);
+        
             
           });
 
           await Promise.all(promises);
 
+          await browser.close()
+
         } catch (error) {
           console.error(`Error during area processing:`, error);
-        } finally {
-          if(browser){
-            await browser.close();
-          }
         }
       });
     }
@@ -146,20 +145,6 @@ export const handler = async (): Promise<any> => {
   }
 };
 
-async function checkBlinkitPrice(page: Page) {
-  try {
-    const product = await page.evaluate(() => {
-      const name = document.querySelector('.ProductVariants__VariantUnitText-sc-1unev4j-6.dhCxof')?.textContent?.trim() ?? '';
-      const unit = document.querySelector('.ProductInfoCard__ProductName-sc-113r60q-10.dsuWXl')?.textContent?.trim() ?? '';
-      return { name, unit };
-    });
-
-    console.log("Product: ", product);
-
-  } catch (error) {
-    console.error("Error: ", error);
-  }
-}
 
 // Test - npx ts-node index.ts
 (async () => {
