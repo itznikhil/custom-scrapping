@@ -1,8 +1,8 @@
 import { Cluster } from "puppeteer-cluster";
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
-import { PuppeteerExtra } from "puppeteer-extra";
-import { Page } from "puppeteer";
+
+
 
 const s3 = new S3Client({
   region: "ap-south-1",
@@ -14,7 +14,6 @@ async function getS3Object(key: string) {
   const response = await s3.send(command);
   return response.Body;
 }
-
 
 async function readCSVFile(csvFile: Readable) {
   const csv = require("@fast-csv/parse");
@@ -53,88 +52,63 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const handler = async (): Promise<any> => {
   try {
-    const puppeteer: PuppeteerExtra = require("puppeteer-extra");
-    const stealthPlugin = require("puppeteer-extra-plugin-stealth");
+    const { addExtra } = require('puppeteer-extra')
+    const Stealth = require('puppeteer-extra-plugin-stealth')
+    const vanillaPuppeteer = require('puppeteer')
 
-    puppeteer.use(stealthPlugin());
+    const puppeteer = addExtra(vanillaPuppeteer)
+    puppeteer.use(Stealth())
 
     const cluster = await Cluster.launch({
-      concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 10,
       puppeteer,
+      concurrency: Cluster.CONCURRENCY_CONTEXT,
+      maxConcurrency: 50,
+      
       puppeteerOptions: {
-        args:['--no-sandbox', '--disable-setuid-sandbox']
+        args:['--no-sandbox', '--disable-setuid-sandbox',  "--start-maximized",
+
+         ],
+         headless:false
       }
     });
 
-    const response = await getS3Object("Blinkit Areas.csv");
-    const stores = await readCSVFile(response as Readable);
-
+        const response = await getS3Object("Blinkit Areas.csv");
+        const darkStores = await readCSVFile(response as Readable);
+        const result = await getS3Object("Combined Data Mapping Anveshan.csv");
+          const skus = await readCSVFile(response as Readable);
+          const identifier = 'Blinkit PRID'
+          const p_ids =skus.filter(sku => !!sku[identifier]).map(sku => sku[identifier]);
    
 
 
-    for (const store of stores) {
-      await cluster.queue(async () => {
+       await cluster.task(async ({page, data:url}) => {
         try {
-
-          const browser = await puppeteer.launch({
-            headless: false,
-            args: [
-              "--start-maximized",
-              "--disable-client-side-phishing-detection",
-              "--disable-software-rasterizer",
-              "--disable-dev-shm-usage",
-              "--proxy-server=103.162.133.224:49155",    
+          await page.goto(url, {waitUntil:'networkidle2', timeout:60000});
+          const htmlContent = await page.content();
           
-              '--no-sandbox', '--disable-setuid-sandbox'
-            ],
-          
-          });
+          console.log('HTML Content: ', htmlContent)
+      
 
-          const context = browser.defaultBrowserContext();
-          await context.overridePermissions('https://blinkit.com', ['geolocation']);
-
-          const locationPage = await context.newPage();
-          await locationPage.setGeolocation({
-            latitude: parseFloat(store.Latitude),
-            longitude: parseFloat(store.Longitude),
-          });
-
-          const user = "nikhil0mqUA";
-          const password = "kkDouV6zVx";
-          await locationPage.authenticate({ username: user, password: password });
-
-          await locationPage.goto("https://blinkit.com", { waitUntil: 'load', timeout: 0 });
-
-          const locationBox = "button.btn.location-box.mask-button";
-          await locationPage.waitForSelector(locationBox, {timeout: 0,});
-          await locationPage.click(locationBox, );
-          await locationPage.waitForFunction('document.querySelector(".containers__DesktopContainer-sc-95cgcs-0.hAbKnj") === null', {timeout:0});
-          await delay(500);
-
-          const response = await getS3Object("Combined Data Mapping Anveshan.csv");
-          const skus = await readCSVFile(response as Readable);
-
-          const key = 'Blinkit PRID'
-
-          const p_ids=skus.filter(sku => !!sku[key]).map(sku => sku[key]);
-
-          const promises = p_ids.map(async (pid) => {
-            const productPage = await context.newPage();
-            await productPage.goto(`https://www.blinkit.com/prn/a/prid/${pid}`);
-        
-            
-          });
-
-          await Promise.all(promises);
-
-          await browser.close()
 
         } catch (error) {
-          console.error(`Error during area processing:`, error);
-        }
+          console.error(`Task Failed :`, error);
+        } 
       });
+    
+
+
+    for (let index = 0; index < 10000; index++) {
+      cluster.queue('https://blinkit.com/')
+      
     }
+
+    cluster.on('taskerror', (err, data, willRetry) => {
+      if (willRetry) {
+        console.warn(`Encountered an error while crawling ${data}. ${err.message}\nThis job will be retried`);
+      } else {
+        console.error(`Failed to crawl ${data}: ${err.message}`);
+      }
+  });
 
     await cluster.idle();
     await cluster.close();
