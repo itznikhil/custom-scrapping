@@ -62,7 +62,7 @@ export const handler = async (): Promise<any> => {
     const cluster = await Cluster.launch({
       puppeteer,
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 5,
+      maxConcurrency: 50,
       
       puppeteerOptions: {
         defaultViewport: null,

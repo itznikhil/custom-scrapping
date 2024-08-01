@@ -12,9 +12,22 @@ RUN uname -a
 # Set NPM cache directory
 ENV NPM_CONFIG_CACHE=/tmp/.npm3
 
-# We don't need the standalone Chromium
+# Skip Chromium download for Puppeteer
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
+# Install system dependencies for Chrome, X server, and VNC server
+RUN apt-get update && \
+    apt-get install -yq \
+    net-tools gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 \
+    libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 \
+    libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 \
+    libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 \
+    libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release \
+    xdg-utils xvfb x11vnc x11-xkb-utils xfonts-100dpi xfonts-75dpi xfonts-scalable x11-apps wget \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Google Chrome Stable and additional fonts
 # Install Google Chrome Stable and fonts
 # Note: this installs the necessary libs to make the browser work with Puppeteer.
 RUN apt-get update && apt-get install curl gnupg -y \
@@ -26,9 +39,6 @@ RUN apt-get update && apt-get install curl gnupg -y \
 
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
-# Include global arg in this stage of the build
-ARG FUNCTION_DIR
-
 # Install build dependencies
 RUN apt-get update && \
     apt-get install -y \
@@ -36,7 +46,21 @@ RUN apt-get update && \
     make \
     cmake \
     unzip \
-    libcurl4-openssl-dev
+    libcurl4-openssl-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Use dumb-init to handle process signals
+ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_x86_64 /usr/local/bin/dumb-init
+RUN chmod +x /usr/local/bin/dumb-init
+
+# Set up the VNC server
+RUN mkdir ~/.vnc && x11vnc -storepasswd 1234 ~/.vnc/passwd
+
+# Expose default port for VNC server
+EXPOSE 5900
+
+ARG FUNCTION_DIR
 
 # Create function directory and copy code
 RUN mkdir -p ${FUNCTION_DIR}
@@ -45,62 +69,26 @@ COPY . ${FUNCTION_DIR}
 # Set working directory
 WORKDIR ${FUNCTION_DIR}
 
+# Install npm dependencies including TypeScript
+RUN npm install && \
+    npm install -g typescript ts-node tsc
+
 # List files in working directory
 RUN pwd
 RUN ls -la
 
-# Install npm dependencies including TypeScript
-RUN npm install
+# Set environment variables
+ARG NODE_ENV
+ENV NODE_ENV=$NODE_ENV
 
-# Install additional system dependencies including dbus and X11 libraries
-RUN apt-get install -y \
-    libnss3 libnss3-dev \
-    libnspr4 libnspr4-dev \
-    libdbus-1-3 dbus-x11 \
-    libatk1.0-0 libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxkbcommon0 \
-    libatspi2.0-0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    ca-certificates \
-    fonts-liberation \
-    libappindicator3-1 \
-    libc6 \
-    libcairo2 \
-    libexpat1 \
-    libfontconfig1 \
-    libgcc1 \
-    libglib2.0-0 \
-    libgtk-3-0 \
-    libpango-1.0-0 libpangocairo-1.0-0 \
-    libstdc++6 \
-    libx11-6 libx11-xcb1 libxcb1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libxrandr2 \
-    libxrender1 \
-    libxss1 \
-    libxtst6 \
-    lsb-release \
-    wget \
-    xdg-utils \
-    xvfb
+# Make container_start.sh executable
+RUN chmod +x ./container_start.sh
 
-# Install TypeScript, ts-node, tsc globally
-RUN npm install -g typescript ts-node tsc
+# Expose application port
+EXPOSE 8000
 
-# List files in working directory again
-RUN pwd
-RUN ls -la
+# Use dumb-init as the entrypoint
+ENTRYPOINT ["dumb-init", "--"]
 
-# Set the entrypoint to run your TypeScript file using xvfb-run to handle the X server
-ENTRYPOINT ["xvfb-run", "--auto-servernum", "--server-args='-screen 0 1024x768x24'", "ts-node", "index.ts"]
+# Start the application
+CMD ["sh", "./container_start.sh"]
