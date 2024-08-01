@@ -62,11 +62,16 @@ export const handler = async (): Promise<any> => {
     const cluster = await Cluster.launch({
       puppeteer,
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 50,
+      maxConcurrency: 5,
       
       puppeteerOptions: {
-        args:['--no-sandbox', '--disable-setuid-sandbox',  "--start-maximized",
-
+        defaultViewport: null,
+        args:[
+          '--start-maximized',
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-web-security',
+          '--disable-features=IsolateOrigins,site-per-process'
          ],
          headless:false
       }

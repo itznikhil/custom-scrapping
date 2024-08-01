@@ -52,11 +52,11 @@ RUN ls -la
 # Install npm dependencies including TypeScript
 RUN npm install
 
-# Install additional system dependencies
+# Install additional system dependencies including dbus and X11 libraries
 RUN apt-get install -y \
     libnss3 libnss3-dev \
     libnspr4 libnspr4-dev \
-    libdbus-1-3 \
+    libdbus-1-3 dbus-x11 \
     libatk1.0-0 libatk-bridge2.0-0 \
     libcups2 \
     libdrm2 \
@@ -92,7 +92,8 @@ RUN apt-get install -y \
     libxtst6 \
     lsb-release \
     wget \
-    xdg-utils
+    xdg-utils \
+    xvfb
 
 # Install TypeScript, ts-node, tsc globally
 RUN npm install -g typescript ts-node tsc
@@ -101,5 +102,5 @@ RUN npm install -g typescript ts-node tsc
 RUN pwd
 RUN ls -la
 
-# Set the entrypoint to run your TypeScript file
-ENTRYPOINT ["ts-node", "index.ts"]
+# Set the entrypoint to run your TypeScript file using xvfb-run to handle the X server
+ENTRYPOINT ["xvfb-run", "--auto-servernum", "--server-args='-screen 0 1024x768x24'", "ts-node", "index.ts"]
