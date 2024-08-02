@@ -62,7 +62,7 @@ export const handler = async (): Promise<any> => {
     const cluster = await Cluster.launch({
       puppeteer,
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 50,
+      maxConcurrency: 100,
       
       puppeteerOptions: {
         defaultViewport: null,
@@ -91,7 +91,7 @@ export const handler = async (): Promise<any> => {
           await page.goto(url, {waitUntil:'networkidle2', timeout:60000});
           const htmlContent = await page.content();
           
-          console.log('HTML Content: ', htmlContent)
+          // console.log('HTML Content: ', htmlContent)
       
 
 
@@ -103,7 +103,8 @@ export const handler = async (): Promise<any> => {
 
 
     for (let index = 0; index < 10000; index++) {
-      cluster.queue('https://blinkit.com/')
+      console.log('index:', index)
+      cluster.queue('https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771/')
       
     }
 
