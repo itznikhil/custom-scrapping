@@ -51,7 +51,6 @@ async function uploadToS3(key: string, data: any) {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 
-let count:number
 
 export const handler = async (): Promise<any> => {
   try {
@@ -62,10 +61,12 @@ export const handler = async (): Promise<any> => {
     const puppeteer = addExtra(vanillaPuppeteer)
     puppeteer.use(Stealth())
 
+    let count = 0
+
     const cluster = await Cluster.launch({
       puppeteer,
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 100,
+      maxConcurrency: 5,
       
       puppeteerOptions: {
         defaultViewport: null,
@@ -94,8 +95,9 @@ export const handler = async (): Promise<any> => {
           await page.goto(url, {waitUntil:'networkidle2', timeout:60000});
           const htmlContent = await page.content();
           
-          console.log('HTML Content: ', htmlContent)
-      
+          // console.log('HTML Content: ', htmlContent)
+          count++
+
           console.log('count:', count)
 
 
@@ -108,7 +110,6 @@ export const handler = async (): Promise<any> => {
 
 
     for (let index = 0; index < 10000; index++) {
-      count++
       cluster.queue('https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771/')
     }
 
