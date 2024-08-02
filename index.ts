@@ -77,7 +77,7 @@ export const handler = async (): Promise<any> => {
           '--disable-web-security',
           '--disable-features=IsolateOrigins,site-per-process'
          ],
-         headless:false,
+         headless:true,
       }
       ,
       monitor:true
