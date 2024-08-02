@@ -77,8 +77,10 @@ export const handler = async (): Promise<any> => {
           '--disable-web-security',
           '--disable-features=IsolateOrigins,site-per-process'
          ],
-         headless:false
+         headless:false,
       }
+      ,
+      monitor:true
     });
 
         const response = await getS3Object("Blinkit Areas.csv");
@@ -92,7 +94,16 @@ export const handler = async (): Promise<any> => {
 
        await cluster.task(async ({page, data:url}) => {
         try {
-          await page.goto(url, {waitUntil:'networkidle2', timeout:60000});
+          await page.setRequestInterception(true);
+          page.on('request', (request) => {
+            if (['image', 'stylesheet', 'font', 'media'].includes(request.resourceType())) {
+              request.abort();
+            } else {
+              request.continue();
+            }
+          });
+
+          await page.goto(url, {waitUntil:'load', timeout:60000});
           const htmlContent = await page.content();
           
           // console.log('HTML Content: ', htmlContent)
