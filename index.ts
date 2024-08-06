@@ -21,6 +21,7 @@ export const handler = async (
       concurrency: Cluster.CONCURRENCY_CONTEXT,
       maxConcurrency: 10,
       puppeteer,
+      
       puppeteerOptions:{      
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       }
@@ -42,6 +43,8 @@ export const handler = async (
                 "--disable-software-rasterizer",
                 "--start-maximized"
               ],
+              defaultViewport: null,
+
             };
     
         const browser: Browser = await puppeteer.launch(launchOptions);
@@ -62,11 +65,13 @@ export const handler = async (
         
           await delay(1000)
 
-          await page.goto("https://blinkit.com");
+          await page.goto("https://blinkit.com", {timeout:0, waitUntil:'load'});
 
           const LocationBox = 'button.btn.location-box.mask-button'
-          await page.waitForSelector(LocationBox)
+          await page.waitForSelector(LocationBox, {timeout:0})
           await page.click(LocationBox);
+          await page.waitForFunction('document.querySelector(".containers__DesktopContainer-sc-95cgcs-0.hAbKnj") === null', {timeout:0});
+
           await delay(1000)
 
           const prids = ["532966","532967"]
@@ -75,9 +80,9 @@ export const handler = async (
             const newPage = await browser.newPage();
             newPage.setDefaultNavigationTimeout(5000);
 
-            await newPage.goto(`https://blinkit.com/prn/a/prid/${prid}`);
+            await newPage.goto(`https://blinkit.com/prn/a/prid/${prid}`, {waitUntil:'load', timeout:0});
 
-            await delay(5000)
+            await delay(1000)
             await newPage.close();
           }
           await browser.close();
