@@ -20,7 +20,10 @@ export const handler = async (
     const cluster = await Cluster.launch({
       concurrency: Cluster.CONCURRENCY_CONTEXT,
       maxConcurrency: 10,
-      puppeteer
+      puppeteer,
+      puppeteerOptions:{      
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      }
     });
 
     for (let index = 0; index < 10; index++) {
