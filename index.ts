@@ -49,7 +49,7 @@ export const handler = async (
 
     const cluster = await Cluster.launch({
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: parseInt(process.env.PUPPETEER_MAXCONCURRENCY || "2"),
+      maxConcurrency:50,
       puppeteer,
       monitor:true
     });
