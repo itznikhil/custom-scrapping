@@ -1,111 +1,55 @@
-import { Browser, PuppeteerLaunchOptions } from "puppeteer";
-import { PuppeteerExtra } from "puppeteer-extra";
-import { Cluster } from "puppeteer-cluster";
+// @ts-nocheck
+const { Cluster } = require('puppeteer-cluster');
+const puppeteer = require('puppeteer-extra');
 
-
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-
-export const handler = async (
- 
-) => {
-  try {
-    const puppeteer: PuppeteerExtra = require("puppeteer-extra");
-    const stealthPlugin = require("puppeteer-extra-plugin-stealth");
-    puppeteer.use(stealthPlugin());
-    
-
-
-    const cluster = await Cluster.launch({
-      concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 10,
-      puppeteer,
-      
-      puppeteerOptions:{      
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      }
-    });
-
-    for (let index = 0; index < 10; index++) {
-      
-      cluster.queue( async () => {
-
-        try {
-          const launchOptions: PuppeteerLaunchOptions = {
-              headless: false,
-              executablePath: puppeteer.executablePath(),
-              args: [
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--incognito",
-                "--disable-client-side-phishing-detection",
-                "--disable-software-rasterizer",
-                "--start-maximized"
-              ],
-              defaultViewport: null,
-
-            };
-    
-        const browser: Browser = await puppeteer.launch(launchOptions);
-        
-          const context = browser.defaultBrowserContext();
-
-          await context.overridePermissions('https://blinkit.com', ['geolocation']);
-        
-          
-          const page = await browser.newPage();
-
-          page.setDefaultNavigationTimeout(45000);
-
-          page.setGeolocation({
-            latitude: 19.0759837,
-            longitude:72.8776559
-          })
-        
-          await delay(1000)
-
-          await page.goto("https://blinkit.com", {timeout:0, waitUntil:'load'});
-
-          const LocationBox = 'button.btn.location-box.mask-button'
-          await page.waitForSelector(LocationBox, {timeout:0})
-          await page.click(LocationBox);
-          await page.waitForFunction('document.querySelector(".containers__DesktopContainer-sc-95cgcs-0.hAbKnj") === null', {timeout:0});
-
-          await delay(1000)
-
-          const prids = ["532966","532967"]
-
-          for (const prid of prids) {
-            const newPage = await browser.newPage();
-            newPage.setDefaultNavigationTimeout(5000);
-
-            await newPage.goto(`https://blinkit.com/prn/a/prid/${prid}`, {waitUntil:'load', timeout:0});
-
-            await delay(1000)
-            await newPage.close();
-          }
-          await browser.close();
-
-        } catch (error) {
-          console.error("Error during product scraping:", error);
-        } 
-      });
-    }
-    
-    await cluster.idle();
-    await cluster.close();
-  } catch (e) {
-    console.log("Error in Handler:", e);
-    return e;
-  }
-};
-
-// Test - npx ts-node index.ts
 (async () => {
-  try {
-    await handler();
-  } catch (e) {
-    console.log("Error in Handler:", e);
-  }
+  // Launch Puppeteer Cluster
+  const cluster = await Cluster.launch({
+    concurrency: Cluster.CONCURRENCY_BROWSER,  // Use PAGE concurrency to manage multiple tabs
+    maxConcurrency: 5, // Number of tabs to run simultaneously (adjust as needed)
+    puppeteerOptions: {
+      headless: false,  // Set to false if you want to see the browser actions
+    },
+    monitor: true,  // Monitor performance
+  });
+
+  // Task definition
+  await cluster.task(async ({ page, data: urls }) => {
+    // Create multiple tabs within the same context
+    const pages = [];
+    for (const url of urls) {
+      const newPage = await page.browser().newPage();  // Open a new tab
+      await newPage.goto(url);  // Navigate to the URL
+      console.log(`Opened URL: ${url} in new tab`);
+      pages.push(newPage);  // Store the tab reference
+    }
+
+    // Example: Perform actions on each tab
+    for (const newPage of pages) {
+      console.log(`Page title: ${await newPage.title()}`);
+      await newPage.screenshot({ path: `screenshot-${Date.now()}.png` });
+    }
+
+    // Close all tabs after work is done
+    for (const newPage of pages) {
+      await newPage.close();
+    }
+  });
+
+  // Queue with multiple URLs per task (each array entry creates multiple tabs)
+  cluster.queue(['https://example.com', 'https://google.com']);
+  cluster.queue(['https://github.com', 'https://stackoverflow.com']);
+  cluster.queue(['https://twitter.com', 'https://facebook.com']);
+
+  cluster.queue(['https://blinkit.com', 'https://zeptonow.com']);
+  cluster.queue(['https://swiggy.com', 'https://zomato.com']);
+  cluster.queue(['https://olacabs.com', 'https://www.uber.com/in/en/']);
+
+  cluster.queue(['https://unicommerce.com', 'https://bytecubetech.com']);
+  cluster.queue(['https://muul.us', 'https://fillflow.us/login']);
+  cluster.queue(['https://whatsapp.com', 'https://chatgpt.com']);
+
+  // Wait for the cluster to finish
+  await cluster.idle();
+  await cluster.close();
 })();
