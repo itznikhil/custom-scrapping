@@ -11,7 +11,7 @@ puppeteer.use(StealthPlugin())
   // Launch Puppeteer Cluster
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_BROWSER,  // Use BROWSER concurrency to manage multiple tabs
-    maxConcurrency: 5, // Number of browsers to run simultaneously
+    maxConcurrency: 100, // Number of browsers to run simultaneously
     puppeteerOptions: {
       headless: false,  // Set to false if you want to see the browser actions
       defaultViewport: null,
@@ -49,18 +49,13 @@ puppeteer.use(StealthPlugin())
     await browser.close();
   });
 
+  for (let index = 0; index < 500; index++) {
+    
   // Queue with multiple URLs per task (each array entry creates multiple tabs)
-  cluster.queue(['https://example.com', 'https://google.com']);
-  cluster.queue(['https://github.com', 'https://stackoverflow.com']);
-  cluster.queue(['https://twitter.com', 'https://facebook.com']);
+  cluster.queue(['https://example.com', 'https://google.com','https://github.com', 'https://stackoverflow.com','https://twitter.com', 'https://facebook.com','https://blinkit.com', 'https://zeptonow.com','https://swiggy.com', 'https://zomato.com','https://olacabs.com', 'https://www.uber.com/in/en/','https://unicommerce.com', 'https://bytecubetech.com','https://muul.us', 'https://fillflow.us/login','https://whatsapp.com', 'https://chatgpt.com']);
+ 
+}
 
-  cluster.queue(['https://blinkit.com', 'https://zeptonow.com']);
-  cluster.queue(['https://swiggy.com', 'https://zomato.com']);
-  cluster.queue(['https://olacabs.com', 'https://www.uber.com/in/en/']);
-
-  cluster.queue(['https://unicommerce.com', 'https://bytecubetech.com']);
-  cluster.queue(['https://muul.us', 'https://fillflow.us/login']);
-  cluster.queue(['https://whatsapp.com', 'https://chatgpt.com']);
 
   // Wait for the cluster to finish
   await cluster.idle();
