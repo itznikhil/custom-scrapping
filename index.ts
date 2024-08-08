@@ -5,6 +5,7 @@ const puppeteer = require('puppeteer-extra');
 
 
 
+
 (async () => {
   const StealthPlugin = require('puppeteer-extra-plugin-stealth')
 puppeteer.use(StealthPlugin())
@@ -22,6 +23,31 @@ puppeteer.use(StealthPlugin())
     timeout:1500000
   });
 
+  const getPuppeteer = (async (retries, delay)=>{
+        
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            return await puppeteer.launch({
+              dumpio: true,
+              headless: false,  // Set to false to see the browser actions
+              defaultViewport: null,
+              args: ['--no-sandbox', '--start-maximized',      "--disable-setuid-sandbox",
+              
+            ],
+            })
+        } catch (error) {
+            console.error(`Failed to launch browser instance: ${error.message}`);
+            if (attempt < retries) {
+                console.log(`Retrying in ${delay / 1000} seconds...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+                throw new Error('Failed to launch browser instance after multiple attempts');
+            }
+        }
+    }
+
+  }) 
+
   // Task definition
   await cluster.task(async ({ page, data: urls }) => {
     await page.setDefaultNavigationTimeout(0);  // Disable navigation timeout
@@ -30,19 +56,15 @@ puppeteer.use(StealthPlugin())
     await new Promise(async (resolve) => {
 
     // Launch a new browser instance manually
-    const browser = await puppeteer.launch({
-      headless: false,  // Set to false to see the browser actions
-      defaultViewport: null,
-      args: ['--no-sandbox', '--start-maximized',      "--disable-setuid-sandbox",
-    ],
-    });
+    const browser = await getPuppeteer(3, 1000)
 
     // Create multiple tabs within the new browser instance
     for (const url of urls) {
-      const newPage = await browser.newPage({timeout: 1500000});  // Open a new tab in the new browser
+      const newPage = await browser.newPage();  // Open a new tab in the new browser
       newPage.setDefaultNavigationTimeout(1500000)
       newPage.setDefaultTimeout(1500000)
       await newPage.setRequestInterception(true);
+      
       newPage.on('request', (request) => {
             if (['image', 'stylesheet', 'font', 'media'].includes(request.resourceType())) {
               request.abort();
@@ -51,7 +73,7 @@ puppeteer.use(StealthPlugin())
             }
       });
 
-      await newPage.goto(url, {waitUntil:'domcontentloaded', timeout: 1500000});  // Navigate to the URL
+      await newPage.goto(url, {waitUntil:'load', timeout: 1500000});  // Navigate to the URL
       console.log(`Opened URL: ${url} in new tab`);
       console.log(`Page title: ${await newPage.title()}`);
       await newPage.content();
