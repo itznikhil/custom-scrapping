@@ -11,7 +11,7 @@ puppeteer.use(StealthPlugin())
   // Launch Puppeteer Cluster
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_BROWSER,  // Use BROWSER concurrency to manage multiple tabs
-    maxConcurrency: parseInt(process.env.PUPPETEER_MAX_CONCURRENCY || '10'), // Number of browsers to run simultaneously
+    maxConcurrency: parseInt(process.env.PUPPETEER_MAX_CONCURRENCY || '5'), // Number of browsers to run simultaneously
     puppeteerOptions: {
       headless: false,  // Set to false if you want to see the browser actions
       defaultViewport: null,
@@ -39,7 +39,7 @@ puppeteer.use(StealthPlugin())
 
     // Create multiple tabs within the new browser instance
     for (const url of urls) {
-      const newPage = await browser.newPage();  // Open a new tab in the new browser
+      const newPage = await browser.newPage({timeout: 1500000});  // Open a new tab in the new browser
       newPage.setDefaultNavigationTimeout(1500000)
       newPage.setDefaultTimeout(1500000)
       await newPage.goto(url, {waitUntil:'domcontentloaded', timeout: 1500000});  // Navigate to the URL
