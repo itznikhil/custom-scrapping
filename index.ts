@@ -11,7 +11,7 @@ puppeteer.use(StealthPlugin())
   // Launch Puppeteer Cluster
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_BROWSER,  // Use BROWSER concurrency to manage multiple tabs
-    maxConcurrency: parseInt(process.env.PUPPETEER_MAX_CONCURRENCY || '2'), // Number of browsers to run simultaneously
+    maxConcurrency: parseInt(process.env.PUPPETEER_MAX_CONCURRENCY || '10'), // Number of browsers to run simultaneously
     puppeteerOptions: {
       headless: false,  // Set to false if you want to see the browser actions
       defaultViewport: null,
@@ -38,21 +38,17 @@ puppeteer.use(StealthPlugin())
     });
 
     // Create multiple tabs within the new browser instance
-    const pages = [];
     for (const url of urls) {
       const newPage = await browser.newPage();  // Open a new tab in the new browser
       newPage.setDefaultNavigationTimeout(1500000)
       newPage.setDefaultTimeout(1500000)
-      await newPage.goto(url, {waitUntil:'networkidle2', timeout: 1500000});  // Navigate to the URL
+      await newPage.goto(url, {waitUntil:'domcontentloaded', timeout: 1500000});  // Navigate to the URL
       console.log(`Opened URL: ${url} in new tab`);
-      pages.push(newPage);  // Store the tab reference
-    }
-
-    // Example: Perform actions on each tab
-    for (const newPage of pages) {
       console.log(`Page title: ${await newPage.title()}`);
       await newPage.content();
     }
+
+
 
     // Close all tabs and the browser instance after work is done
     await browser.close();
@@ -66,7 +62,7 @@ puppeteer.use(StealthPlugin())
   for (let index = 0; index < 500; index++) {
     
   // Queue with multiple URLs per task (each array entry creates multiple tabs)
-  cluster.queue(['https://example.com', 'https://google.com','https://github.com', 'https://stackoverflow.com','https://twitter.com', 'https://facebook.com','https://blinkit.com', 'https://zeptonow.com','https://swiggy.com', 'https://zomato.com','https://olacabs.com', 'https://www.uber.com/in/en/','https://unicommerce.com', 'https://bytecubetech.com','https://muul.us', 'https://fillflow.us/login','https://whatsapp.com', 'https://chatgpt.com']);
+  cluster.queue(['https://example.com', 'https://google.com','https://github.com', 'https://stackoverflow.com','https://twitter.com', 'https://facebook.com','https://blinkit.com', 'https://zeptonow.com','https://swiggy.com', 'https://zomato.com','https://olacabs.com', 'https://www.uber.com/in/en/','https://unicommerce.com', 'https://bytecubetech.com','https://aws.amazon.com/ec2/pricing/', 'https://fillflow.us/login','https://whatsapp.com', 'https://chatgpt.com']);
  
 }
 
