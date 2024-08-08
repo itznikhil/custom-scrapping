@@ -42,6 +42,15 @@ puppeteer.use(StealthPlugin())
       const newPage = await browser.newPage({timeout: 1500000});  // Open a new tab in the new browser
       newPage.setDefaultNavigationTimeout(1500000)
       newPage.setDefaultTimeout(1500000)
+      await newPage.setRequestInterception(true);
+      newPage.on('request', (request) => {
+            if (['image', 'stylesheet', 'font', 'media'].includes(request.resourceType())) {
+              request.abort();
+            } else {
+              request.continue();
+            }
+      });
+
       await newPage.goto(url, {waitUntil:'domcontentloaded', timeout: 1500000});  // Navigate to the URL
       console.log(`Opened URL: ${url} in new tab`);
       console.log(`Page title: ${await newPage.title()}`);
@@ -62,7 +71,7 @@ puppeteer.use(StealthPlugin())
   for (let index = 0; index < 500; index++) {
     
   // Queue with multiple URLs per task (each array entry creates multiple tabs)
-  cluster.queue(['https://example.com', 'https://google.com','https://github.com', 'https://stackoverflow.com','https://twitter.com', 'https://facebook.com','https://blinkit.com', 'https://zeptonow.com','https://swiggy.com', 'https://zomato.com','https://olacabs.com', 'https://www.uber.com/in/en/','https://unicommerce.com', 'https://bytecubetech.com','https://aws.amazon.com/ec2/pricing/', 'https://fillflow.us/login','https://whatsapp.com', 'https://chatgpt.com']);
+  cluster.queue(['https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771', 'https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771']);
  
 }
 
