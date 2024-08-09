@@ -43,16 +43,13 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 RUN apt-get update && \
     apt-get install -y \
     g++ \
+    dumb-init \
     make \
     cmake \
     unzip \
     libcurl4-openssl-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-# Use dumb-init to handle process signals
-ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_x86_64 /usr/local/bin/dumb-init
-RUN chmod +x /usr/local/bin/dumb-init
 
 # Set up the VNC server
 RUN mkdir ~/.vnc && x11vnc -storepasswd 1234 ~/.vnc/passwd
