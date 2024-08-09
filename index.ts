@@ -58,7 +58,7 @@ puppeteer.use(StealthPlugin())
             }
       });
 
-      await newPage.goto(url, {waitUntil:'load', timeout: 1500000});  // Navigate to the URL
+      await newPage.goto(url, {waitUntil:'domcontentloaded', timeout: 1500000});  // Navigate to the URL
       console.log(`Opened URL: ${url} in new tab`);
       console.log(`Page title: ${await newPage.title()}`);
       await newPage.content();
@@ -79,7 +79,7 @@ puppeteer.use(StealthPlugin())
 
   });
 
-  for (let index = 0; index < 500; index++) {
+  for (let index = 0; index < parseInt(process.env.NUMBER_OF_TIMES_OPERATIONS || '500'); index++) {
     
   // Queue with multiple URLs per task (each array entry creates multiple tabs)
   cluster.queue(['https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771', 'https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771','https://blinkit.com/prn/anveshan-wood-cold-pressed-black-mustard-oil/prid/511771']);
